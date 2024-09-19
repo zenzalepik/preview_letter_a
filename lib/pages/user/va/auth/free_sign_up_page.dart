@@ -5,6 +5,7 @@ import 'package:letter_a/pages/user/va/auth/free_login_page.dart';
 import 'package:letter_a/pages/user/va/auth/free_sign_up_personal_data_page.dart';
 import 'package:letter_a/pages/user/va/auth/free_sign_up_portfolio_page.dart';
 import 'package:letter_a/pages/user/va/auth/free_sign_up_work_experience_page.dart';
+import 'package:letter_a/pages/user/va/auth/google/sign_in_with_google.dart';
 import 'package:letter_a/pages/user/va/free_main_page.dart';
 import 'package:letter_a/styles/colors_style.dart';
 import 'package:letter_a/widgets/appbar_widgets.dart';
@@ -262,10 +263,19 @@ class _FreeSignUpPageState extends State<FreeSignUpPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SvgPicture.asset(
-                          'assets/icons/icon_google.svg',
-                          width: 40, // atur lebar gambar sesuai kebutuhan Anda
-                          fit: BoxFit.contain,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => FreeStartSignInGoogle()),
+                            );
+                          },
+                          child: SvgPicture.asset(
+                            'assets/icons/icon_google.svg',
+                            width: 40, // atur lebar gambar sesuai kebutuhan Anda
+                            fit: BoxFit.contain,
+                          ),
                         ),
                         SizedBox(
                           width: 16,

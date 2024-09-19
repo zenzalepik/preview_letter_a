@@ -1,0 +1,160 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http_parser/http_parser.dart';
+import 'package:letter_a/pages/user/va/auth/google/update_profile_google_page.dart';
+import 'package:letter_a/pages/user/va/auth/google/user_google_model.dart';
+import 'package:mime/mime.dart'; // Untuk menentukan tipe MIME
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/oauth2/v2.dart' as oauth2;
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sign_in_button/sign_in_button.dart';
+
+///////////////////////////////////////////////////
+final GoogleSignIn _FreeGoogleSignIn = GoogleSignIn(
+  clientId: kIsWeb
+      ? '748908392834-mncvork2lrh20bsmsipqfavct17tna2h.apps.googleusercontent.com'
+      : null,
+);
+
+Future<GoogleSignInAccount?> signInWithGoogle() async {
+  try {
+    final GoogleSignInAccount? googleUser = await _FreeGoogleSignIn.signIn();
+    return googleUser;
+  } catch (e) {
+    print('Sign-in failed: $e');
+    return null;
+  }
+}
+
+Future<void> signOut() async {
+  await _FreeGoogleSignIn.signOut();
+}
+
+class FreeStartSignInGoogle extends StatefulWidget {
+  @override
+  _FreeStartSignInGoogleState createState() => _FreeStartSignInGoogleState();
+}
+
+class _FreeStartSignInGoogleState extends State<FreeStartSignInGoogle> {
+  GoogleSignInAccount? _user;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _handleSignIn();
+  }
+
+  Future<void> _handleSignIn() async {
+    final user = await signInWithGoogle();
+    if (user != null) {
+      final authHeaders = await user.authHeaders;
+      final accessToken = authHeaders['Authorization']?.split(' ')[1];
+
+      if (accessToken != null) {
+        print('Token akses: $accessToken');
+        final freeUserProfile = await _fetchUserProfile(accessToken);
+
+        if (freeUserProfile != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FreeProfilePage(freeUserProfile: freeUserProfile),
+            ),
+          );
+        }
+      }
+
+      setState(() {
+        _user = user;
+      });
+    }
+  }
+
+  Future<FreeUserProfile?> _fetchUserProfile(String accessToken) async {
+    final response = await http.get(
+      Uri.parse(
+          'https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,photos'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+
+    if (response.statusCode == 200) {
+      try {
+        print('Data Didapat');
+        final userData = jsonDecode(response.body);
+        print('Profil pengguna: $userData');
+
+        if (userData['names'] != null &&
+            userData['names'].isNotEmpty &&
+            userData['emailAddresses'] != null &&
+            userData['emailAddresses'].isNotEmpty &&
+            userData['photos'] != null &&
+            userData['photos'].isNotEmpty) {
+          final String name = userData['names'][0]['displayName'];
+          final String email = userData['emailAddresses'][0]['value'];
+          final String photoUrl = '${userData['photos'][0]['url'] ?? ''}';
+          final String id = userData['resourceName'];
+
+          return FreeUserProfile(
+            name: name,
+            email: email,
+            photoUrl: photoUrl,
+            id: id,
+          );
+        } else {
+          print('Data profil tidak lengkap');
+          return null;
+        }
+      } catch (e) {
+        print('Error parsing user profile data: $e');
+        return null;
+      }
+    } else {
+      print('Gagal mendapatkan profil pengguna: ${response.statusCode}');
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Loading...'),
+      ),
+      body: Center(
+        child: Expanded(
+          child: Column(
+            children: [
+              SizedBox(
+                height: 80,
+              ),
+              Center(
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.blue), // Warna loading
+                    strokeWidth: 6.0, // Ketebalan garis loading
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              SignInButton(
+                Buttons.google,
+                onPressed: _handleSignIn,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

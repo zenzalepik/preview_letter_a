@@ -115,6 +115,9 @@ class _SignUpNewAccountPageState extends State<SignUpNewAccountPage> {
                     ),
                   ],
                 ),
+                SizedBox(
+                  height: 24,
+                ),
                 Row(
                   children: [
                     Expanded(
