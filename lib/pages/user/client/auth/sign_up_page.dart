@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:letter_a/pages/user/client/auth/google/sign_in_with_google.dart';
 import 'package:letter_a/pages/user/client/auth/login_page.dart';
 import 'package:letter_a/pages/user/client/auth/sign_up_personal_data_page.dart';
 import 'package:letter_a/pages/user/client/main_page.dart';
@@ -239,10 +240,20 @@ class _SignUpPageState extends State<SignUpPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SvgPicture.asset(
-                          'assets/icons/icon_google.svg',
-                          width: 40, // atur lebar gambar sesuai kebutuhan Anda
-                          fit: BoxFit.contain,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => StartSignInGoogle()),
+                            );
+                          },
+                          child: SvgPicture.asset(
+                            'assets/icons/icon_google.svg',
+                            width:
+                                40, // atur lebar gambar sesuai kebutuhan Anda
+                            fit: BoxFit.contain,
+                          ),
                         ),
                         SizedBox(
                           width: 16,

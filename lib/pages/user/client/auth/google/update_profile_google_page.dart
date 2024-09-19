@@ -1,6 +1,8 @@
-
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -9,7 +11,13 @@ import 'package:image_picker/image_picker.dart';
 import 'package:letter_a/pages/user/client/auth/google/login_process_google_page.dart';
 import 'package:letter_a/pages/user/client/auth/google/register_google_page.dart';
 import 'package:letter_a/pages/user/client/auth/google/user_google_model.dart';
+import 'package:letter_a/styles/colors_style.dart';
+import 'package:letter_a/styles/typography_style.dart';
+import 'package:letter_a/widgets/buttons_widgets.dart';
+import 'package:letter_a/widgets/gap_column_input_style.dart';
 import 'package:mime/mime.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 const String checkApiUrl = 'https://letter-a.co.id/api/v1/auth/check_data.php';
 const String updateApiUrl =
@@ -32,12 +40,13 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final _idController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _placeOfBirthController = TextEditingController();
   final _cityController = TextEditingController();
   final _provinceController = TextEditingController();
-  final _dateOfBirthController = TextEditingController();
+  final _dateOfBirthController = TextEditingController(text: '1999-01-01');
   final _ijazahController = TextEditingController();
   final _whatsappController = TextEditingController();
   final _facebookController = TextEditingController();
@@ -78,6 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
         print('Update data udulu yuk ${result['message']}');
         setState(() {
           _idController.text = '${data['id'] ?? ''}';
+          _passwordController.text = '${data['password'] ?? ''}';
           _fullNameController.text = '${data['fullName'] ?? ''}';
           _placeOfBirthController.text = '${data['placeOfBirth'] ?? ''}';
           _cityController.text = '${data['city'] ?? ''}';
@@ -90,15 +100,23 @@ class _ProfilePageState extends State<ProfilePage> {
           _linkedInController.text = '${data['linkedIn'] ?? ''}';
         });
       } else if (result['status'] == '201') {
+        final data = result['data'];
+        setState(() {
+          _idController.text = '${data['id'] ?? ''}';
+          _passwordController.text = '${data['password'] ?? ''}';
+        });
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => LoginBerhasil(),
+            builder: (context) => LoginBerhasil(
+                emailClient: '${_emailController.text}',
+                passwordClient: '${_passwordController.text}'),
           ),
         );
         print('kamu sudah terdaftar ${result['message']}');
       } else if (result['status'] == '404') {
         print('server bingung ${result['message']}');
+        print('++${_emailController.text}');
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -108,6 +126,7 @@ class _ProfilePageState extends State<ProfilePage> {
       } else {
         final data = result['data'];
         setState(() {
+          _passwordController.text = '${data['password'] ?? ''}';
           _fullNameController.text = '${data['fullName'] ?? ''}';
           _placeOfBirthController.text = '${data['placeOfBirth'] ?? ''}';
           _cityController.text = '${data['city'] ?? ''}';
@@ -119,6 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
           _instagramController.text = '${data['instagram'] ?? ''}';
           _linkedInController.text = '${data['linkedIn'] ?? ''}';
         });
+        print('/////////////datapassword ?? ${data['password'] ?? ''}');
         print('${result['message']}');
 
         // ScaffoldMessenger.of(context).showSnackBar(
@@ -182,6 +202,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final updates = {
+        'password': _passwordController.text,
         'fullName': _fullNameController.text,
         //'email': _emailController.text,
         'placeOfBirth': _placeOfBirthController.text,
@@ -264,7 +285,9 @@ class _ProfilePageState extends State<ProfilePage> {
         final responseData = jsonDecode(responseBody);
         if (responseData['status'] == 'success') {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Profile updated successfully')),
+            SnackBar(
+                content: Text('Profile updated successfully'),
+                backgroundColor: LColors.primary),
           );
 
           // ScaffoldMessenger.of(context).showSnackBar(
@@ -274,7 +297,9 @@ class _ProfilePageState extends State<ProfilePage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => LoginBerhasil(),
+              builder: (context) => LoginBerhasil(
+                  emailClient: '${_emailController.text}',
+                  passwordClient: '${_passwordController.text}'),
             ),
           );
         } else {
@@ -295,106 +320,449 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildImageDisplay() {
     if (_base64Image != null) {
       if (kIsWeb && _webImage != null) {
+        _convertBase64ToFile();
         return Image.memory(
           base64Decode(_base64Image!),
-          width: 100,
-          height: 100,
+          fit: BoxFit.cover,
+          // width: 100,
+          // height: 100,
         );
       } else if (!kIsWeb && _imageFile != null) {
         return Image.file(
           _imageFile!,
-          width: 100,
-          height: 100,
+          fit: BoxFit.cover,
+          // width: 100,
+          // height: 100,
         );
       }
     }
     return Text('No image selected');
   }
 
+  String? _filePathPhotoProfile;
+  File? _filePhotoProfile;
+
+  Future<void> _convertBase64ToFile() async {
+    // Decode Base64 string
+    Uint8List bytes = base64Decode(_base64Image!);
+
+    // Get the temporary directory of the app
+    final directory = await getTemporaryDirectory();
+    final filePath = '${directory.path}/image.jpg';
+
+    // Create a file and write the bytes to it
+    final file = File(filePath);
+    await file.writeAsBytes(bytes);
+
+    setState(() {
+      _filePathPhotoProfile = filePath;
+      _filePhotoProfile = file;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Profile Page'),
-      ),
+      // appBar: AppBar(
+      //   title: Text(''),
+      // ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(0.0),
           child: _loading
               ? Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: _buildImageDisplay(),
-                    ),
-                    SizedBox(height: 16.0),
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _idController,
-                            decoration: InputDecoration(labelText: 'ID'),
-                            enabled: false,
-                          ),
-                          TextFormField(
-                            controller: _emailController,
-                            decoration: InputDecoration(labelText: 'Email'),
-                            enabled: false,
-                          ),
-                          TextFormField(
-                            controller: _fullNameController,
-                            decoration: InputDecoration(labelText: 'Full Name'),
-                          ),
-                          TextFormField(
-                            controller: _placeOfBirthController,
-                            decoration:
-                                InputDecoration(labelText: 'Place of Birth'),
-                          ),
-                          TextFormField(
-                            controller: _cityController,
-                            decoration: InputDecoration(labelText: 'City'),
-                          ),
-                          TextFormField(
-                            controller: _provinceController,
-                            decoration: InputDecoration(labelText: 'Province'),
-                          ),
-                          TextFormField(
-                            controller: _dateOfBirthController,
-                            decoration:
-                                InputDecoration(labelText: 'Date of Birth'),
-                          ),
-                          TextFormField(
-                            controller: _ijazahController,
-                            decoration: InputDecoration(labelText: 'Ijazah'),
-                          ),
-                          TextFormField(
-                            controller: _whatsappController,
-                            decoration: InputDecoration(labelText: 'WhatsApp'),
-                          ),
-                          TextFormField(
-                            controller: _facebookController,
-                            decoration: InputDecoration(labelText: 'Facebook'),
-                          ),
-                          TextFormField(
-                            controller: _instagramController,
-                            decoration: InputDecoration(labelText: 'Instagram'),
-                          ),
-                          TextFormField(
-                            controller: _linkedInController,
-                            decoration: InputDecoration(labelText: 'LinkedIn'),
-                          ),
-                          SizedBox(height: 20.0),
-                          ElevatedButton(
-                            onPressed: _updateProfile,
-                            child: Text('Update Profile'),
-                          ),
-                        ],
+              : Form(
+                  key: _formKey,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                      padding: EdgeInsets.all(16),
+                                      decoration:
+                                          BoxDecoration(color: LColors.primary),
+                                      child: Text(
+                                          "Let's complete your personal data first!",
+                                          style:
+                                              LText.H3(color: LColors.white))),
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              height: 24,
+                            ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      children: [
+                                        Text(
+                                            "Upload again your photo profile, please",
+                                            style: LText.subtitle(
+                                                color: LColors.black)),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                children: [
+                                                  Stack(
+                                                    children: [
+                                                      Visibility(
+                                                        visible: true,
+                                                        child: ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        24),
+                                                            child: SizedBox(
+                                                                width: 280,
+                                                                height: 280,
+                                                                child:
+                                                                    _buildImageDisplay())),
+                                                      ),
+                                                      SizedBox(
+                                                        width: 280,
+                                                        height: 280,
+                                                        child: DottedBorder(
+                                                          borderType:
+                                                              BorderType.RRect,
+                                                          radius:
+                                                              Radius.circular(
+                                                                  24),
+                                                          strokeWidth: 2,
+                                                          color:
+                                                              LColors.primary,
+                                                          dashPattern: [
+                                                            8,
+                                                            4
+                                                          ], // panjang garis dan spasi
+
+                                                          child: Container(
+                                                            width:
+                                                                double.infinity,
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    24),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          24),
+                                                              color: Color
+                                                                  .fromARGB(
+                                                                      55,
+                                                                      0,
+                                                                      152,
+                                                                      15),
+                                                            ),
+                                                            child: Column(
+                                                              children: [
+                                                                SizedBox(
+                                                                    height: 40),
+                                                                Icon(
+                                                                  Icons
+                                                                      .image_outlined,
+                                                                  color: _base64Image == null
+                                                                      ? LColors
+                                                                          .primary
+                                                                      : LColors
+                                                                          .white,
+                                                                  size: 80,
+                                                                ),
+                                                                SizedBox(
+                                                                  height: 24,
+                                                                ),
+                                                                IconButtonWidget(
+                                                                  onPressed:
+                                                                      _pickImage,
+                                                                  icon:
+                                                                      'icon_upload.svg',
+                                                                  // color:
+                                                                  text: _base64Image ==
+                                                                          null
+                                                                      ? 'Upload'
+                                                                      : 'Change File',
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(
+                                          height: 32,
+                                        ),
+
+                                        ///
+                                        ///ID
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _idController,
+                                                decoration: InputDecoration(
+                                                  hintText: '',
+                                                  labelText: 'ID',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                                enabled: false,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Email
+                                        GapCInput(),
+                                        TextFormField(
+                                          controller: _emailController,
+                                          decoration: InputDecoration(
+                                              labelText: 'Email'),
+                                          enabled: false,
+                                        ),
+
+                                        ///
+                                        ///Password
+                                        GapCInput(),
+                                        TextFormField(
+                                          controller: _passwordController,
+                                          obscureText:
+                                              true, // Mengatur input sebagai kata sandi
+                                          decoration: InputDecoration(
+                                            hintText: '********',
+                                            labelText: 'Password',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          enabled: true,
+                                        ),
+
+                                        ///
+                                        ///Full Name
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _fullNameController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Full Name',
+                                                  hintText: 'Budi Budiman',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Place of Birth
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller:
+                                                    _placeOfBirthController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Place of Birth',
+                                                  hintText: 'Surabaya',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///City
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _cityController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'City',
+                                                  hintText: 'Malang',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Province
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _provinceController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Province',
+                                                  hintText: 'Est Java',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Date of Birth
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller:
+                                                    _dateOfBirthController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Date of Birth',
+                                                  hintText: '1999-01-01',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Ijazah
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _ijazahController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Ijazah',
+                                                  hintText:
+                                                      'Bachelor Degree of Data Science',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Whatsapp
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                                child: TextFormField(
+                                                    controller:
+                                                        _whatsappController,
+                                                    decoration: InputDecoration(
+                                                      labelText: 'WhatsApp',
+                                                      hintText: '6285720075826',
+                                                      border:
+                                                          OutlineInputBorder(),
+                                                    ))),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Facebook
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _facebookController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Facebook',
+                                                  hintText: '@facebook_account',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///Instagram
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller:
+                                                    _instagramController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'Instagram',
+                                                  hintText:
+                                                      '@instagram_account',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        ///
+                                        ///LinkedIn
+                                        GapCInput(),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _linkedInController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'LinkedIn',
+                                                  hintText: '@linkedin_account',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(
+                                          height: 20,
+                                        ),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: RoundedElevatedButton(
+                                                onPressed: _updateProfile,
+                                                text: 'Update Profile',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(
+                                          height: 16,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            ///     SizedBox(height: 16.0),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
         ),
       ),

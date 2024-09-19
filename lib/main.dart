@@ -6,6 +6,8 @@ import 'package:letter_a/pages/sign_up_new_account_page.dart';
 import 'package:letter_a/pages/user/client/main_page.dart';
 import 'package:letter_a/pages/user/va/free_main_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:js/js.dart';
+import 'dart:html' as html;
 
 void main() {
   debugPrint = (String? message, {int? wrapWidth}) {};
@@ -27,6 +29,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    clearCacheAndCookies();
     clearData();
     checkToken();
   }
@@ -56,6 +59,32 @@ class _MyAppState extends State<MyApp> {
     });
     print('token $userToken');
     print('role $role');
+  }
+
+  ///
+  ///Clear Cache & Cookie
+// Membersihkan cache browser
+  void clearCache() {
+    html.window.location
+        .reload(); // Reload halaman untuk memastikan cache di-refresh
+  }
+
+// Membersihkan semua cookies
+  void clearCookies() {
+    var cookies = html.document.cookie?.split("; ");
+    if (cookies != null) {
+      for (var cookie in cookies) {
+        var cookieName = cookie.split("=")[0];
+        html.document.cookie =
+            "$cookieName=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      }
+    }
+  }
+
+// Fungsi untuk membersihkan cache dan cookie
+  void clearCacheAndCookies() {
+    //clearCache(); // Membersihkan cache
+    clearCookies(); // Membersihkan cookies
   }
 
   @override

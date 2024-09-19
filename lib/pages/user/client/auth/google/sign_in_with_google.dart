@@ -12,6 +12,7 @@ import 'package:mime/mime.dart'; // Untuk menentukan tipe MIME
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/oauth2/v2.dart' as oauth2;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sign_in_button/sign_in_button.dart';
 
 ///////////////////////////////////////////////////
 final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -123,12 +124,35 @@ class _StartSignInGoogleState extends State<StartSignInGoogle> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Google Sign-In Sample'),
+        title: Text('Loading...'),
       ),
       body: Center(
-        child: ElevatedButton(
-          onPressed: _handleSignIn,
-          child: Text('Sign In with Google'),
+        child: Expanded(
+          child: Column(
+            children: [
+              SizedBox(
+                height: 80,
+              ),
+              Center(
+                child: SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.blue), // Warna loading
+                    strokeWidth: 6.0, // Ketebalan garis loading
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: 16,
+              ),
+              SignInButton(
+                Buttons.google,
+                onPressed: _handleSignIn,
+              ),
+            ],
+          ),
         ),
       ),
     );
