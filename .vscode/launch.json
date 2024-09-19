@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "name": "Flutter Run on Chrome with Custom Port",
+          "type": "dart",
+          "request": "launch",
+          "program": "lib/main.dart", // Path ke file utama Flutter-mu
+          "args": [
+            "run",
+            "-d",
+            "chrome",
+            "--web-port=44033"
+          ]
+        },/*
+        {
+            "name": "Dart",
+            "type": "dart",
+            "request": "launch",
+            "program": "lib/main.dart"
+        },*/
+        // {
+        //     "type": "chrome",
+        //     "request": "launch",
+        //     "name": "Open index.html",
+        //     "file": "/media/zain/0EF05A0775ED20D7/GitHub/letter_a/build/web/index.html"
+        // }
+    ]
+}

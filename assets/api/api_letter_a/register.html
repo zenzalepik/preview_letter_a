@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Input Data</title>
+</head>
+<body>
+    <h2>Form Input Data</h2>
+    <form action="register.php" method="post" enctype="multipart/form-data">
+        <label for="username">Username:</label><br>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="password">Password:</label><br>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <label for="fullName">Full Name:</label><br>
+        <input type="text" id="fullName" name="fullName" required><br><br>
+
+        <label for="placeOfBirth">Place of Birth:</label><br>
+        <input type="text" id="placeOfBirth" name="placeOfBirth"><br><br>
+
+        <label for="dateOfBirth">Date of Birth:</label><br>
+        <input type="date" id="dateOfBirth" name="dateOfBirth"><br><br>
+
+        <label for="email">Email:</label><br>
+        <input type="email" id="email" name="email"><br><br>
+
+        <label for="whatsapp">WhatsApp:</label><br>
+        <input type="text" id="whatsapp" name="whatsapp"><br><br>
+
+        <label for="facebook">Facebook:</label><br>
+        <input type="text" id="facebook" name="facebook"><br><br>
+
+        <label for="instagram">Instagram:</label><br>
+        <input type="text" id="instagram" name="instagram"><br><br>
+
+        <label for="linkedIn">LinkedIn:</label><br>
+        <input type="text" id="linkedIn" name="linkedIn"><br><br>
+
+        <label for="role">Role:</label><br>
+        <select id="role" name="role">
+            <option value="va">Virtual Assistant</option>
+            <option value="user">User</option>
+            <!-- Add more options as needed -->
+        </select><br><br>
+
+        <!-- Input file untuk foto profil -->
+        <label for="profileImage">Profile Image:</label><br>
+        <input type="file" id="profileImage" name="profileImage"><br><br>
+
+        <!-- Uncomment this section if you want to include work experience -->
+        <!-- <label for="workExperience">Work Experience:</label><br>
+        <textarea id="workExperience" name="workExperience"></textarea><br><br> -->
+
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>

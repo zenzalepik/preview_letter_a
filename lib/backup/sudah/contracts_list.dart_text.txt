@@ -1,0 +1,144 @@
+/**/ 
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:letter_a/backup/contracts_detail.dart';
+import 'package:letter_a/controller/config.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Contract List',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: ContractListScreen(userId: 59), // Ganti dengan UserID yang sesuai
+    );
+  }
+}
+
+class ContractListScreen extends StatefulWidget {
+  final int userId;
+
+  ContractListScreen({required this.userId});
+
+  @override
+  _ContractListScreenState createState() => _ContractListScreenState();
+}
+
+class _ContractListScreenState extends State<ContractListScreen> {
+  Future<List<Contract>> _fetchContracts() async {
+    final response = await http.get(Uri.parse(
+        '$server/api/v1/contracts/get_contracts.php?UserID=${widget.userId}'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      if (data is List) {
+        return data.map((item) => Contract.fromJson(item)).toList();
+      } else {
+        return [];
+      }
+    } else {
+      throw Exception('Failed to load contracts');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Contracts'),
+      ),
+      body: FutureBuilder<List<Contract>>(
+        future: _fetchContracts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No contracts available.'));
+          } else {
+            final contracts = snapshot.data!;
+            return ListView.builder(
+              itemCount: contracts.length,
+              itemBuilder: (context, index) {
+                final contract = contracts[index];
+                return ListTile(
+                  title: Text('Contract ID: ${contract.application_id}'),
+                  subtitle: Column(
+                    children: [
+                      // Text('Application ID: ${contract.application_id}'),
+                      Text('Client ID: ${contract.ClientID}'),
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ContractDetailScreen(contract: contract),
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+class Contract {
+  final String application_id;
+  final String Vaid;
+  final String UserID;
+  final String ClientID;
+  final String TanggalApprove;
+  final String TanggalSelesai;
+  final String Status;
+  final String Rating;
+
+  Contract({
+    required this.application_id,
+    required this.Vaid,
+    required this.UserID,
+    required this.ClientID,
+    required this.TanggalApprove,
+    required this.TanggalSelesai,
+    required this.Status,
+    required this.Rating,
+  });
+
+  factory Contract.fromJson(Map<String, dynamic> json) {
+    return Contract(
+      application_id: '${json['application_id']}',
+      Vaid: '${json['Vaid']}',
+      UserID: '${json['UserID']}',
+      ClientID: '${json['ClientID']}',
+      TanggalApprove: '${json['TanggalApprove']}',
+      TanggalSelesai: '${json['TanggalSelesai']}',
+      Status: '${json['Status']}',
+      Rating: '${(json['Rating']).toString()}',
+    );
+    //     return Contract(
+    //   application_id: int.parse(json['application_id']),
+    //   Vaid: int.parse(json['Vaid']),
+    //   UserID: int.parse(json['UserID']),
+    //   ClientID: int.parse(json['ClientID']),
+    //   TanggalApprove: "${json['TanggalApprove']}",
+    //   TanggalSelesai: "${json['TanggalSelesai']}",
+    //   Status: "${json['Status']}",
+    //   Rating: double.parse("${json['Rating']}"),
+    // );
+  }
+}
+
+/**/
